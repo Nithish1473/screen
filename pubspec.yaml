@@ -1,0 +1,33 @@
+# pubspec.yaml
+name: screen_time_app
+description: A new Flutter project.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^2.27.0
+  cloud_firestore: ^4.15.8
+  firebase_auth: ^4.17.8
+  google_fonts: ^6.2.1
+  intl: ^0.20.2
+  permission_handler: ^11.3.1
+  package_info_plus: ^5.0.1
+  uuid: ^4.3.3
+  provider: ^6.0.5
+  image_picker: ^1.0.7
+  firebase_storage: ^11.6.9
+  flutter_svg: ^2.0.10+1 # Added flutter_svg dependency
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
