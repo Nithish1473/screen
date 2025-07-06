@@ -9,7 +9,9 @@ import 'dart:async';
 // Corrected import path for ThemeProvider
 import 'package:screen_time_app/main.dart';
 import 'package:screen_time_app/screens/updates_page.dart';
-// import 'package:screen_time_app/screens/avatar_selection_page.dart'; // No longer directly used here
+import 'package:screen_time_app/screens/privacy_policy_page.dart'; // New import
+import 'package:screen_time_app/screens/terms_conditions_page.dart'; // New import
+import 'package:screen_time_app/screens/dust_bank_description_page.dart'; // New import
 
 // Global app ID (from main.dart)
 const String __app_id = String.fromEnvironment('APP_ID', defaultValue: 'default-app-id');
@@ -29,7 +31,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _listenToProfileChanges(); // Listen for any profile changes relevant to settings
+    _listenToProfileChanges();
   }
 
   @override
@@ -51,7 +53,6 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       if (snapshot.exists && snapshot.data() != null) {
         print("Profile data exists in settings page.");
-        // If you need to react to other profile changes in settings, add logic here
       } else {
         print("Profile document not found for settings.");
       }
@@ -60,6 +61,23 @@ class _SettingsPageState extends State<SettingsPage> {
         print("Error listening to profile changes in settings: $error");
       }
     });
+  }
+
+  void _simulateNewNotification() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    if (themeProvider.isNotificationsEnabled) {
+      themeProvider.addNotification(
+        title: 'New DustBank Insight!',
+        body: 'Your weekly NFT insight card is ready. Check your vault!',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Simulated new notification! Check the home screen icon.', style: GoogleFonts.montserrat())),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Notifications are currently disabled.', style: GoogleFonts.montserrat())),
+      );
+    }
   }
 
   @override
@@ -155,7 +173,31 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 20),
 
-            // Updates Section
+            // Simulate Notification Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _simulateNewNotification,
+                icon: const Icon(Icons.add_alert_rounded),
+                label: Text(
+                  'Simulate New Notification',
+                  style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // --- Updated Navigation Sections ---
+
+            // App Updates Section
             Card(
               margin: const EdgeInsets.symmetric(vertical: 8.0),
               elevation: 4,
@@ -188,7 +230,8 @@ class _SettingsPageState extends State<SettingsPage> {
               elevation: 4,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
-              child: ExpansionTile(
+              child: ListTile(
+                leading: Icon(Icons.privacy_tip_rounded, color: Colors.blue.shade700),
                 title: Text(
                   'Privacy Policy',
                   style: GoogleFonts.montserrat(
@@ -197,49 +240,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: Colors.blue.shade800,
                   ),
                 ),
-                leading: Icon(Icons.privacy_tip_rounded,
-                    color: Colors.blue.shade700),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                    child: Text(
-                      'Privacy Policy (DustBank)\n'
-                      'Effective Date: July 5, 2025\n'
-                      'Last Updated: July 5, 2025\n'
-                      'DustBank ("we", "our", or "us") values your privacy. This Privacy Policy explains how we collect, use, share,\n'
-                      'and protect your data.\n'
-                      '1. What Data We Collect\n'
-                      '- Behavior tags\n'
-                      '- In-app usage patterns\n'
-                      '- Optional user metadata\n'
-                      '- UUID or device ID\n'
-                      '2. How We Use Your Data\n'
-                      '- To generate weekly NFTs\n'
-                      '- To offer brand rewards\n'
-                      '- For anonymized analytics\n'
-                      '3. No Personal Identity Shared\n'
-                      '- No names, phones, or emails collected\n'
-                      '- No PII shared with brands\n'
-                      '4. Data Sharing\n'
-                      '- Only anonymized tags shared\n'
-                      '- No resale without consent\n'
-                      '5. Data Security\n'
-                      '- Encrypted storage\n'
-                      '- UUIDs are hashed\n'
-                      '6. User Control\n'
-                      '- Option to delete data\n'
-                      '- Reset profile feature\n'
-                      '7. Child Policy\n'
-                      '- Not intended for users under 13\n'
-                      '8. Changes\n'
-                      '- Notified through app banner\n'
-                      '9. Contact\n'
-                      'Email: your.email@example.com',
-                      style: GoogleFonts.montserrat(fontSize: 14, color: Colors.black87),
-                      textAlign: TextAlign.justify,
-                    ),
-                  ),
-                ],
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.grey),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 10),
@@ -250,7 +257,8 @@ class _SettingsPageState extends State<SettingsPage> {
               elevation: 4,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
-              child: ExpansionTile(
+              child: ListTile(
+                leading: Icon(Icons.description_rounded, color: Colors.blue.shade700),
                 title: Text(
                   'Terms and Conditions',
                   style: GoogleFonts.montserrat(
@@ -259,29 +267,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: Colors.blue.shade800,
                   ),
                 ),
-                leading: Icon(Icons.description_rounded, color: Colors.blue.shade700),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                    child: Text(
-                      'Terms & Conditions (DustBank)\n'
-                      '1. Usage\n'
-                      'Use DustBank only for personal insights. No commercial scraping or cloning.\n'
-                      '2. Rewards\n'
-                      'Brand rewards are external. We are not liable for delivery or quality.\n'
-                      '3. Data Ownership\n'
-                      'You own your behavior. We only generate insights.\n'
-                      '4. Conduct\n'
-                      'No abuse or illegal behavior allowed. Offenders may be blocked.\n'
-                      '5. Modifications\n'
-                      'We may update features or terms anytime.\n'
-                      '6. Disclaimer\n'
-                      'DustBank does not offer medical or financial advice. Use for awareness only.',
-                      style: GoogleFonts.montserrat(fontSize: 14, color: Colors.black87),
-                      textAlign: TextAlign.justify,
-                    ),
-                  ),
-                ],
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.grey),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TermsConditionsPage()),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 10),
@@ -292,7 +284,8 @@ class _SettingsPageState extends State<SettingsPage> {
               elevation: 4,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
-              child: ExpansionTile(
+              child: ListTile(
+                leading: Icon(Icons.savings_rounded, color: Colors.blue.shade700),
                 title: Text(
                   'Dust Bank Description',
                   style: GoogleFonts.montserrat(
@@ -301,32 +294,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: Colors.blue.shade800,
                   ),
                 ),
-                leading: Icon(Icons.savings_rounded, color: Colors.blue.shade700),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                    child: Text(
-                      'DustBank is a behavior-intelligence app that captures how you live, feel, and bounce back - and converts it into a powerful weekly NFT insight card.\n'
-                      'Unlike traditional habit trackers or emotion journals, DustBank doesn\'t just log your steps - it decodes your emotional and behavioral fingerprint across five unique life layers:\n'
-                      '* Burnout - Moments of overwhelm and exhaustion\n'
-                      '* Impulse - Spur-of-the-moment actions or reactions\n'
-                      '* Detox - Times when you consciously break patterns\n'
-                      '* Bounce Back - Your recovery and resilience days\n'
-                      '* Learning - Reflections, realizations, and growth\n'
-                      'Every week, DustBank reflects your behavior through a personal NFT card - a visual and private snapshot of how you showed up that week. These NFTs are yours. You can keep them, track them, or even exchange them for real-world brand rewards.\n'
-                      'Powered by anonymous tracking and privacy-first design, DustBank gives you:\n'
-                      '- Zero sign-up friction (UUID-based entry)\n'
-                      '- Weekly reflections without journaling pressure\n'
-                      '- Emotional awareness without public sharing\n'
-                      '- A growing reward system from aligned brand partners\n'
-                      'For brands: DustBank creates emotion-moment matching, helping you reach users not just by age or location - but by how they feel.\n'
-                      'Join the movement. Own your data. Reflect your life.\n'
-                      'DustBank - not a diary. Not a tracker. A mirror for the soul of your week.',
-                      style: GoogleFonts.montserrat(fontSize: 14, color: Colors.black87),
-                      textAlign: TextAlign.justify,
-                    ),
-                  ),
-                ],
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.grey),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DustBankDescriptionPage()),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 20),

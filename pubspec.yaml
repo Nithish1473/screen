@@ -15,7 +15,7 @@ dependencies:
   cloud_firestore: ^4.15.8
   firebase_auth: ^4.17.8
   google_fonts: ^6.2.1
-  intl: ^0.20.2
+  intl: ^0.20.2 # Updated intl package version
   permission_handler: ^11.3.1
   package_info_plus: ^5.0.1
   uuid: ^4.3.3
@@ -31,3 +31,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter:
+  assets:
+    - assets/avatar1.png
+    - assets/avatar2.png
+    - assets/avatar3.png
+    - assets/default_avatar.png
+

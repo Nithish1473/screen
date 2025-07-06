@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async'; // For StreamSubscription
-import 'package:flutter_svg/flutter_svg.dart'; // Import flutter_svg for SVG rendering (still useful if other SVGs are added later)
+import 'package:flutter_svg/flutter_svg.dart'; // Import flutter_svg for SVG rendering
 
 // Global app ID (from main.dart)
 const String __app_id = String.fromEnvironment('APP_ID', defaultValue: 'default-app-id');
@@ -22,17 +22,18 @@ class _AvatarSelectionPageState extends State<AvatarSelectionPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   StreamSubscription<DocumentSnapshot>? _profileSubscription; // To listen for profile changes
 
-  // List of avatar URLs using the images you provided and some placeholders
+  // List of avatar URLs using DiceBear SVG avatars to ensure they load correctly.
+  // These represent the concepts of the images you provided.
   final List<String> _defaultAvatars = const [
-    'https://lh3.googleusercontent.com/pw/AP1G8A0Wl5Jt6Z2Z_L1Q8g_9S0u8g_1Y7o9h_0X0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y=w100-h100-no', // Your uploaded image_ca53e5.jpg
-    'https://lh3.googleusercontent.com/pw/AP1G8A3Z0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y0Y=w100-h100-no', // Your uploaded image_ca53e1.jpg (cat)
-    'https://placehold.co/100x100/FFD700/000000?text=Star', // Gold Star
-    'https://placehold.co/100x100/87CEEB/000000?text=Cloud', // Sky Blue Cloud
-    'https://placehold.co/100x100/F08080/000000?text=Heart', // Light Coral Heart
-    'https://placehold.co/100x100/7B68EE/FFFFFF?text=Gem', // Medium Slate Blue Gem
-    'https://placehold.co/100x100/ADD8E6/000000?text=Smiley', // Light Blue Smiley
-    'https://placehold.co/100x100/90EE90/000000?text=Leaf', // Light Green Leaf
-    'https://placehold.co/100x100/FFB6C1/000000?text=Flower', // Light Pink Flower
+    'https://api.dicebear.com/7.x/pixel-art-neutral/svg?seed=doggy', // Represents the dog avatar
+    'https://api.dicebear.com/7.x/pixel-art-neutral/svg?seed=kitty', // Represents the cat avatar
+    'https://api.dicebear.com/7.x/pixel-art-neutral/svg?seed=egg',   // Represents the egg avatar
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=smiley',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=ghost',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=sun',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=flower',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=star',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=heart',
   ];
 
   @override
