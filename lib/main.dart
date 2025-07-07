@@ -1,7 +1,5 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-// Removed: import 'package:flutter_localizations/flutter_localizations.dart';
-// Removed: import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,13 +28,68 @@ class ThemeProvider with ChangeNotifier {
   bool _isNotificationsEnabled = true; // Default notifications to ON
   int _unreadNotificationsCount = 0; // New state for unread notifications
 
+  // Firestore and Auth instances
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   ThemeMode get themeMode => _themeMode;
   bool get isNotificationsEnabled => _isNotificationsEnabled;
   int get unreadNotificationsCount => _unreadNotificationsCount;
 
-  void toggleTheme(bool isDark) {
+  // Method to toggle theme and save to Firestore
+  Future<void> toggleTheme(bool isDark) async {
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     notifyListeners(); // Notify widgets listening to this provider
+
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      print("Cannot save theme preference: User not logged in.");
+      return;
+    }
+
+    try {
+      final docRef = _firestore.collection('artifacts').doc(__app_id).collection('users').doc(user.uid).collection('profile').doc('details');
+      await docRef.set({
+        'isDarkTheme': isDark, // Save the theme preference
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print("Theme preference saved to Firestore: $isDark");
+    } catch (e) {
+      print("Error saving theme preference to Firestore: $e");
+      // Optionally revert local state or show error to user
+      // _themeMode = isDark ? ThemeMode.light : ThemeMode.dark; // Revert on error
+      // notifyListeners();
+    }
+  }
+
+  // Method to load theme preference from Firestore
+  Future<void> loadThemePreference() async {
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      print("Cannot load theme preference: User not logged in.");
+      return;
+    }
+
+    try {
+      final docRef = _firestore.collection('artifacts').doc(__app_id).collection('users').doc(user.uid).collection('profile').doc('details');
+      final snapshot = await docRef.get();
+
+      if (snapshot.exists && snapshot.data() != null) {
+        final data = snapshot.data()!;
+        final bool isDark = data['isDarkTheme'] ?? false; // Default to false if not found
+        if (_themeMode != (isDark ? ThemeMode.dark : ThemeMode.light)) {
+          _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+          notifyListeners();
+          print("Theme preference loaded from Firestore: $isDark");
+        }
+      } else {
+        print("Profile document not found for theme preference, using default light theme.");
+        // Optionally save default theme if profile doesn't exist
+        await docRef.set({'isDarkTheme': false}, SetOptions(merge: true));
+      }
+    } catch (e) {
+      print("Error loading theme preference from Firestore: $e");
+    }
   }
 
   // Method to toggle notification preference and save to Firestore
@@ -44,14 +97,14 @@ class ThemeProvider with ChangeNotifier {
     _isNotificationsEnabled = enable;
     notifyListeners(); // Notify UI immediately
 
-    final User? user = FirebaseAuth.instance.currentUser;
+    final User? user = _auth.currentUser; // Using _auth instance from ThemeProvider
     if (user == null) {
       print("Cannot save notification preference: User not logged in.");
       return;
     }
 
     try {
-      final docRef = FirebaseFirestore.instance.collection('artifacts').doc(__app_id).collection('users').doc(user.uid).collection('profile').doc('details');
+      final docRef = _firestore.collection('artifacts').doc(__app_id).collection('users').doc(user.uid).collection('profile').doc('details');
       await docRef.set({
         'isNotificationsEnabled': enable,
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -191,7 +244,7 @@ class MyApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
-      key: const ValueKey('mainApp'),
+      key: const ValueKey('mainApp'), // Added a ValueKey to MaterialApp
       title: 'Screen Time Tracker', // Hardcoded title
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -285,7 +338,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: themeProvider.themeMode, // Use themeMode from ThemeProvider
-      // Removed localization delegates and supported locales
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -307,6 +359,10 @@ class MyApp extends StatelessWidget {
           }
           if (snapshot.hasData && snapshot.data != null) {
             debugPrint("Auth state: User logged in.");
+            // Load theme preference as soon as user is authenticated
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Provider.of<ThemeProvider>(context, listen: false).loadThemePreference();
+            });
             return const MainScreen();
           } else {
             debugPrint("Auth state: No user logged in. Showing LoginPage.");
@@ -330,7 +386,7 @@ class _MainScreenState extends State<MainScreen> {
   final PageController _pageController = PageController();
   String? _avatarImageUrl;
   StreamSubscription<DocumentSnapshot>? _profileSubscription;
-  StreamSubscription<DocumentSnapshot>? _notificationPreferenceSubscription;
+  StreamSubscription<DocumentSnapshot>? _userProfileDetailsSubscription; // Renamed for clarity
   StreamSubscription<QuerySnapshot>? _unreadNotificationsSubscription;
 
   late final List<Widget> _pages;
@@ -340,11 +396,11 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     debugPrint("MainScreen initState called.");
     _pages = [
-      const HomeScreen(key: PageStorageKey('homeScreen')),
-      const NftVaultScreen(key: PageStorageKey('nftVaultScreen')),
-      const WalletScreen(key: PageStorageKey('walletScreen')),
-      const OffersScreen(key: PageStorageKey('offersScreen')),
-      const ProfileScreen(key: PageStorageKey('profileScreen')),
+      const HomeScreen(),
+      const NftVaultScreen(),
+      const WalletScreen(),
+      const OffersScreen(),
+      const ProfileScreen(),
     ];
     debugPrint("MainScreen pages initialized. Number of pages: ${_pages.length}");
     _pages.asMap().forEach((index, page) {
@@ -355,17 +411,20 @@ class _MainScreenState extends State<MainScreen> {
       if (mounted) {
         if (user != null) {
           _listenToAvatarChanges(user.uid);
-          _listenToNotificationPreference(user.uid);
+          // This listener will now also update the theme and notifications based on Firestore
+          _listenToUserProfileDetails(user.uid);
           _listenToUnreadNotifications(user.uid);
         } else {
           _profileSubscription?.cancel();
-          _notificationPreferenceSubscription?.cancel();
+          _userProfileDetailsSubscription?.cancel(); // Cancel the consolidated listener
           _unreadNotificationsSubscription?.cancel();
           setState(() {
             _avatarImageUrl = null;
           });
           Provider.of<ThemeProvider>(context, listen: false).setNotificationsEnabled(true);
           Provider.of<ThemeProvider>(context, listen: false).setUnreadNotificationsCount(0);
+          // Reset to default theme if user logs out
+          Provider.of<ThemeProvider>(context, listen: false).toggleTheme(false); // Default to light
         }
       }
     });
@@ -374,6 +433,7 @@ class _MainScreenState extends State<MainScreen> {
   void _listenToAvatarChanges(String userId) {
     final docRef = FirebaseFirestore.instance.collection('artifacts').doc(__app_id).collection('users').doc(userId).collection('profile').doc('details');
 
+    // This subscription is specifically for the avatar URL in the AppBar
     _profileSubscription?.cancel();
     _profileSubscription = docRef.snapshots().listen((snapshot) {
       if (!mounted) return;
@@ -395,28 +455,42 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _listenToNotificationPreference(String userId) {
+  // Consolidated listener for user profile details (notifications and theme)
+  void _listenToUserProfileDetails(String userId) {
     final docRef = FirebaseFirestore.instance.collection('artifacts').doc(__app_id).collection('users').doc(userId).collection('profile').doc('details');
 
-    _notificationPreferenceSubscription?.cancel();
-    _notificationPreferenceSubscription = docRef.snapshots().listen((snapshot) {
+    _userProfileDetailsSubscription?.cancel(); // Use the new subscription variable
+    _userProfileDetailsSubscription = docRef.snapshots().listen((snapshot) {
       if (!mounted) return;
       if (snapshot.exists && snapshot.data() != null) {
         final data = snapshot.data()!;
-        final bool isEnabled = data['isNotificationsEnabled'] ?? true;
-        Provider.of<ThemeProvider>(context, listen: false).setNotificationsEnabled(isEnabled);
-        print("Notification preference updated in ThemeProvider: $isEnabled");
+        // Update notification preference
+        final bool isNotificationsEnabled = data['isNotificationsEnabled'] ?? true;
+        Provider.of<ThemeProvider>(context, listen: false).setNotificationsEnabled(isNotificationsEnabled);
+
+        // Update theme preference
+        final bool isDarkTheme = data['isDarkTheme'] ?? false; // Default to false (light)
+        // Only call toggleTheme if the theme actually changed to avoid unnecessary Firestore writes
+        if (Provider.of<ThemeProvider>(context, listen: false).themeMode != (isDarkTheme ? ThemeMode.dark : ThemeMode.light)) {
+           Provider.of<ThemeProvider>(context, listen: false).toggleTheme(isDarkTheme);
+        }
+        print("User profile details updated: Notifications: $isNotificationsEnabled, Dark Theme: $isDarkTheme");
+
       } else {
+        // If profile document doesn't exist, set defaults
         Provider.of<ThemeProvider>(context, listen: false).setNotificationsEnabled(true);
-        print("Profile document not found for notifications, setting default to true.");
+        Provider.of<ThemeProvider>(context, listen: false).toggleTheme(false); // Default to light
+        print("Profile document not found for user details, setting defaults.");
       }
     }, onError: (error) {
       if (mounted) {
-        print("Error listening to notification preference in MainScreen: $error");
+        print("Error listening to user profile details in MainScreen: $error");
         Provider.of<ThemeProvider>(context, listen: false).setNotificationsEnabled(true);
+        Provider.of<ThemeProvider>(context, listen: false).toggleTheme(false); // Default to light on error
       }
     });
   }
+
 
   void _listenToUnreadNotifications(String userId) {
     final notificationsCollectionRef = FirebaseFirestore.instance
@@ -443,14 +517,14 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  String _getGreeting() { // Removed BuildContext parameter
+  String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Good morning'; // Hardcoded string
+      return 'Good morning';
     } else if (hour < 17) {
-      return 'Good afternoon'; // Hardcoded string
+      return 'Good afternoon';
     } else {
-      return 'Good evening'; // Hardcoded string
+      return 'Good evening';
     }
   }
 
@@ -474,7 +548,7 @@ class _MainScreenState extends State<MainScreen> {
     debugPrint("MainScreen dispose called.");
     _pageController.dispose();
     _profileSubscription?.cancel();
-    _notificationPreferenceSubscription?.cancel();
+    _userProfileDetailsSubscription?.cancel(); // Cancel the consolidated listener
     _unreadNotificationsSubscription?.cancel();
     super.dispose();
   }
@@ -483,7 +557,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     debugPrint("MainScreen build called. Current selected index: $_selectedIndex");
     final User? user = FirebaseAuth.instance.currentUser;
-    final String userName = user?.uid.substring(0, 8) ?? "Guest"; // Hardcoded string
+    final String userName = user?.uid.substring(0, 8) ?? "Guest";
 
     final int unreadCount = Provider.of<ThemeProvider>(context).unreadNotificationsCount;
     final bool notificationsEnabled = Provider.of<ThemeProvider>(context).isNotificationsEnabled;
@@ -492,7 +566,7 @@ class _MainScreenState extends State<MainScreen> {
       key: const ValueKey('mainScreenScaffold'),
       appBar: AppBar(
         title: Text(
-          '${_getGreeting()}, $userName', // No longer passing context
+          '${_getGreeting()}, $userName',
           style: GoogleFonts.montserrat(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -563,26 +637,26 @@ class _MainScreenState extends State<MainScreen> {
         children: _pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: const Icon(Icons.home_rounded),
-            label: 'Home', // Hardcoded string
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.security_rounded),
-            label: 'NFT Vault', // Hardcoded string
+            icon: Icon(Icons.security_rounded),
+            label: 'NFT Vault',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.account_balance_wallet_rounded),
-            label: 'Wallet', // Hardcoded string
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Wallet',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.local_offer_rounded),
-            label: 'Offers', // Hardcoded string
+            icon: Icon(Icons.local_offer_rounded),
+            label: 'Offers',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.person_rounded),
-            label: 'Profile', // Hardcoded string
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,

@@ -84,7 +84,7 @@ class UpdatesPage extends StatelessWidget {
                       style: GoogleFonts.montserrat(
                         fontSize: 14,
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey.shade600,
+                        color: Colors.green,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -92,7 +92,7 @@ class UpdatesPage extends StatelessWidget {
                       update['description']!,
                       style: GoogleFonts.montserrat(
                         fontSize: 14,
-                        color: Colors.black87,
+                        color: Colors.white,
                       ),
                     ),
                   ],

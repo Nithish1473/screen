@@ -143,6 +143,11 @@ class _WalletScreenState extends State<WalletScreen> {
     final currencyFormatter = NumberFormat.currency(locale: 'en_US', symbol: '\$');
     final User? user = FirebaseAuth.instance.currentUser; // Get current user for UID
 
+    // Determine text color based on theme brightness
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColorForDustCoins = isDarkMode ? Colors.white : Colors.black87;
+
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -155,13 +160,13 @@ class _WalletScreenState extends State<WalletScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline, color: Colors.red, size: 50),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.montserrat(color: Colors.red, fontSize: 16),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _fetchWalletData,
                 child: Text('Retry', style: GoogleFonts.montserrat()),
@@ -189,7 +194,7 @@ class _WalletScreenState extends State<WalletScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.shade900.withOpacity(0.4),
+                  color: Colors.white.withOpacity(0.4), // Changed to white with 40% opacity
                   spreadRadius: 3,
                   blurRadius: 10,
                   offset: const Offset(0, 5),
@@ -210,7 +215,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Icon(Icons.credit_card_rounded, color: Colors.white70, size: 28), // Card icon
+                    const Icon(Icons.credit_card_rounded, color: Colors.white70, size: 28), // Card icon
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -303,7 +308,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: textColorForDustCoins, // Adaptive color based on theme
                     ),
                   ),
                   const SizedBox(height: 20), // Space between text and button
